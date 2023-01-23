@@ -1,7 +1,7 @@
 import os
+
 import asyncio
 from aiohttp import web
-
 
 WS_FILE = os.path.join(os.path.dirname(__file__), 'index.html')
 
@@ -9,8 +9,9 @@ WS_FILE = os.path.join(os.path.dirname(__file__), 'index.html')
 def init():
     app = web.Application()
     app["sockets"] = []
-    app.router.add_get("/", wshandler)
-    app.on_shutdown.append(on_shutdown)
+    app.router.add_get("/", wshandler)  # wshandler опишем позже
+    app.on_shutdown.append(on_shutdown)  # on_shutdown опишем позже
+    return app
 
 
 web.run_app(init())
@@ -25,12 +26,12 @@ async def wshandler(request: web.Request):
 
     await resp.prepare(request)
 
-    await resp.send_str("Привет!!!")
+    await resp.send_str("Welcome!!!")
 
     try:
-        print("Кто-то присоеденился.")
+        print("Someone joined.")
         for ws in request.app["sockets"]:
-            await ws.send_str("Кто-то присоеденился.")
+            await ws.send_str("Someone joined")
         request.app["sockets"].append(resp)
 
         async for msg in resp:
@@ -44,9 +45,9 @@ async def wshandler(request: web.Request):
 
     finally:
         request.app["sockets"].remove(resp)
-        print("Кто-то отключился.")
+        print("Someone disconnected.")
         for ws in request.app["sockets"]:
-            await ws.send_str("Кто-то отключился.")
+            await ws.send_str("Someone disconnected.")
 
 
 async def on_shutdown(app: web.Application):
@@ -73,8 +74,9 @@ async def main():
     channel = asyncio.Queue()
     cons = asyncio.create_task(consumer(channel))
 
+    # When no producer finished we are done
     await producer(channel)
-    print('Готово!')
+    print('Done!')
 
 
 asyncio.run(main())
